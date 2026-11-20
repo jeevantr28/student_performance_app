@@ -1,0 +1,111 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function approvedFaculty() {
+      return request.auth != null
+          && exists(/databases/$(database)/documents/faculty/$(request.auth.uid))
+          && get(/databases/$(database)/documents/faculty/$(request.auth.uid))
+                  .data.active == true
+          && get(/databases/$(database)/documents/faculty/$(request.auth.uid))
+                  .data.role == 'faculty';
+    }
+
+    function validStudent(studentId) {
+      return request.resource.data.keys().hasAll([
+               'usn',
+               'name',
+               'course',
+               'semester',
+               'section',
+             ])
+          && request.resource.data.keys().hasOnly([
+               'usn',
+               'name',
+               'course',
+               'semester',
+               'section',
+             ])
+          && request.resource.data.usn is string
+          && request.resource.data.usn == studentId
+          && studentId.size() > 0
+          && studentId.size() <= 30
+          && request.resource.data.name is string
+          && request.resource.data.name.size() > 0
+          && request.resource.data.name.size() <= 100
+          && request.resource.data.course is string
+          && request.resource.data.course.size() > 0
+          && request.resource.data.course.size() <= 60
+          && request.resource.data.semester is int
+          && request.resource.data.semester >= 1
+          && request.resource.data.semester <= 8
+          && request.resource.data.section is string
+          && request.resource.data.section.size() > 0
+          && request.resource.data.section.size() <= 20;
+    }
+
+    function validAcademic(subjectId) {
+      return request.resource.data.keys().hasAll([
+               'subjectCode',
+               'subjectName',
+               'marks',
+               'maxMarks',
+               'attended',
+               'conducted',
+             ])
+          && request.resource.data.keys().hasOnly([
+               'subjectCode',
+               'subjectName',
+               'marks',
+               'maxMarks',
+               'attended',
+               'conducted',
+             ])
+          && request.resource.data.subjectCode is string
+          && request.resource.data.subjectCode == subjectId
+          && subjectId.size() > 0
+          && subjectId.size() <= 30
+          && request.resource.data.subjectName is string
+          && request.resource.data.subjectName.size() > 0
+          && request.resource.data.subjectName.size() <= 100
+          && request.resource.data.marks is int
+          && request.resource.data.maxMarks is int
+          && request.resource.data.maxMarks > 0
+          && request.resource.data.maxMarks <= 1000
+          && request.resource.data.marks >= 0
+          && request.resource.data.marks <= request.resource.data.maxMarks
+          && request.resource.data.attended is int
+          && request.resource.data.conducted is int
+          && request.resource.data.conducted >= 0
+          && request.resource.data.conducted <= 1000
+          && request.resource.data.attended >= 0
+          && request.resource.data.attended <= request.resource.data.conducted;
+    }
+
+    match /faculty/{facultyId} {
+      allow read, write: if false;
+    }
+
+    match /students/{studentId} {
+      allow read: if approvedFaculty();
+      allow create, update: if approvedFaculty() && validStudent(studentId);
+      allow delete: if approvedFaculty();
+
+      match /academics/{subjectId} {
+        allow read: if approvedFaculty();
+        allow create, update: if approvedFaculty()
+            && exists(/databases/$(database)/documents/students/$(studentId))
+            && validAcademic(subjectId);
+        allow delete: if approvedFaculty();
+      }
+    }
+
+    match /{path=**}/academics/{subjectId} {
+      allow read: if approvedFaculty();
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

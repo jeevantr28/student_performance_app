@@ -1,0 +1,25 @@
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "student-performance-anal-f87cb",
+          "appId": "1:978332884892:android:e04b5d6c204ce1a14a7259",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "student-performance-anal-f87cb",
+          "configurations": {
+            "android": "1:978332884892:android:e04b5d6c204ce1a14a7259"
+          }
+        }
+      }
+    }
+  },
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  }
+}
